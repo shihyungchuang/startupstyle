@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>創業家適性測驗-簡易版</title>
+<style>
+  :root {
+    --w: 860px;
+    --gap: 14px;
+    --radius: 12px;
+  }
+  body {
+    font-family: system-ui, -apple-system, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    background: #f7f7f8;
+    color: #222;
+  }
+  .wrap {
+    max-width: var(--w);
+    margin: 24px auto 80px;
+    padding: 0 16px;
+  }
+  header {
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin: 0 0 6px;
+  }
+  .sub {
+    color: #555;
+    font-size: .95rem;
+  }
+  .card {
+    background: #fff;
+    border-radius: var(--radius);
+    box-shadow: 0 4px 18px rgba(0,0,0,.06);
+    padding: 18px;
+  }
+  .progress {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: .95rem; color: #444; margin-bottom: 8px;
+  }
+  .bar {
+    height: 8px; background: #eee; border-radius: 999px; overflow: hidden;
+  }
+  .bar > i { display: block; height: 100%; width: 0; background: #4a7ef5; }
+  .q {
+    font-size: 1.15rem; margin: 14px 0 10px; font-weight: 600;
+  }
+  fieldset { border: 0; padding: 0; margin: 8px 0 0; }
+  .scale {
+    display: grid; grid-template-columns: repeat(6,1fr); gap: 10px;
+    margin: 10px 0 6px;
+  }
+  .opt {
+    border: 1px solid #ddd; border-radius: 10px; padding: 12px 8px; text-align: center;
+    cursor: pointer; user-select: none; transition: transform .06s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .opt:hover { transform: translateY(-1px); }
+  input[type=radio] { display: none; }
+  input[type=radio]:checked + .opt {
+    border-color: #4a7ef5; box-shadow: 0 0 0 4px rgba(74,126,245,.12);
+  }
+  .legend {
+    display: flex; justify-content: space-between; font-size: .9rem; color: #666;
+  }
+  .nav {
+    display: flex; gap: 10px; margin-top: 14px;
+  }
+  button {
+    appearance: none; border: 0; border-radius: 10px; padding: 12px 16px; cursor: pointer;
+    background: #222; color: #fff; font-weight: 600;
+  }
+  button[disabled] { opacity: .45; cursor: not-allowed; }
+  .ghost { background: #f0f0f0; color: #222; }
+  .primary { background: #4a7ef5; }
+  .muted { color: #666; font-size: .9rem; }
+  .result {
+    display: none;
+  }
+  .result.show { display: block; }
+  .score {
+    font-size: 2.2rem; font-weight: 800; margin: 10px 0 6px;
+  }
+  .bucket {
+    display: inline-block; padding: 6px 10px; border-radius: 999px; background: #eef3ff; color: #2b57d6;
+    font-weight: 700; margin-bottom: 10px;
+  }
+  .tbl {
+    width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .95rem;
+  }
+  .tbl th, .tbl td { border-bottom: 1px solid #eee; padding: 8px 6px; text-align: left; }
+  .foot {
+    margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .fineprint { color: #777; font-size: .85rem; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>創業家適性測驗－簡易版</h1>
+    <div class="sub">每題以 0～5 作答（0＝非常不符合；5＝非常符合）。共 27 題。</div>
+  </header>
+
+  <!-- 問題卡 -->
+  <section class="card" id="quiz">
+    <div class="progress">
+      <div id="progressText">第 1 / 27 題</div>
+      <div class="muted" id="answeredHint">已作答 0 / 27</div>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+
+    <div class="q" id="questionText">題目載入中…</div>
+
+    <fieldset id="options" aria-label="作答區">
+      <div class="scale" role="radiogroup" aria-labelledby="questionText">
+        <!-- 0~5 選項會由 JS 產生 -->
+      </div>
+      <div class="legend"><span>0 非常不符合</span><span>5 非常符合</span></div>
+    </fieldset>
+
+    <div class="nav">
+      <button id="prevBtn" class="ghost" type="button">← 上一題</button>
+      <button id="nextBtn" class="ghost" type="button">下一題 →</button>
+      <button id="submitBtn" class="primary" type="button" style="margin-left:auto; display:none;">送出測驗</button>
+    </div>
+  </section>
+
+  <!-- 結果卡 -->
+  <section class="card result" id="result">
+    <div class="bucket" id="bucketLabel">結果</div>
+    <div class="score" id="totalScore">0 分</div>
+    <div id="bucketDesc" style="margin:6px 0 8px;"></div>
+    <div class="fineprint">分數範圍：0～135（27 題 × 每題 0～5 分）。</div>
+
+    <h3 style="margin-top:18px;">你的作答摘要</h3>
+    <table class="tbl" id="summaryTable" aria-label="作答摘要表">
+      <thead><tr><th style="width:3em;">#</th><th>題目</th><th style="width:5em;">分數</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="foot">
+      <button id="editBtn" type="button" class="ghost">返回修改</button>
+      <button id="restartBtn" type="button">重新開始</button>
+    </div>
+  </section>
+
+  <p class="fineprint">※ 本測驗僅供自我覺察與討論使用，非臨床或高風險決策工具。</p>
+</div>
+
+<script>
+/** 題目清單（1~27） */
+const QUESTIONS = [
+  "我的自我要求很高。",
+  "遇到困難時，我會想辦法解決問題。",
+  "我為自己設立目標，並努力實踐它們。",
+  "工作時，我總是以身作則。",
+  "我的管理及解決問題的能力深受週遭朋友的肯定。",
+  "我樂於投入自己理想的工作。",
+  "遭遇失敗時，我經常會檢討反省，希望失敗得有價值。",
+  "我願意善盡社會責任，回饋社會。",
+  "我很少遲到。",
+  "我經常主動地協助他人完成工作。",
+  "做決定之前，我常諮詢相關人士的意見。",
+  "對創業管理上的問題，我經常諮詢外界的管理專家。",
+  "我常將工作責任與伙伴分擔、共享。",
+  "在社交場合中，我能夠友善地與他人互動。",
+  "在求學過程中，我幾乎每個階段都積極參與社團活動。",
+  "我喜歡嘗試新的事物。",
+  "我樂於接受挑戰。",
+  "我會從不同的角度去思考、解決問題。",
+  "我喜歡在充滿挑戰與變化的環境中工作。",
+  "我相信我能掌握自己的命運。",
+  "我喜歡享受完成工作後的滿足感。",
+  "在決策的過程中，我常扮演主導的角色。",
+  "只要我決定要做的事，就沒有人事物能夠阻止我。",
+  "我對自己意見與想法很有自信。",
+  "在人群中，我常扮演領導者的角色。",
+  "在團體中我喜歡發表意見遠勝於去聽別人的發言。",
+  "有我參與會議的話，通常開會比較愉快且有效率。"
+];
+
+/** 結果區間與說明 */
+function getBucket(total) {
+  // 對應題目提供的區間與描述
+  if (total === 0) {
+    return {
+      label: "0 分｜非常不適合創業",
+      desc: "非常不適合創業。"
+    };
+  } else if (total >= 1 && total <= 27) {
+    return {
+      label: "1–27 分｜很不適合創業",
+      desc: "很不適合創業。"
+    };
+  } else if (total >= 28 && total <= 54) {
+    return {
+      label: "28–54 分｜有點不適合創業",
+      desc: "雖不適合創業，但若有很強的創業夥伴，也許創業有機會成功。"
+    };
+  } else if (total >= 55 && total <= 81) {
+    return {
+      label: "55–81 分｜有點適合創業",
+      desc: "基本上可以創業，性格上可能有些保守，多加努力，創業圓夢不是難事。"
+    };
+  } else if (total >= 82 && total <= 108) {
+    return {
+      label: "82–108 分｜很適合創業",
+      desc: "具備了創業家性格。如果還是上班族，不妨試著離開公司自行創業吧。"
+    };
+  } else if (total >= 109 && total <= 135) {
+    return {
+      label: "109–135 分｜非常適合創業",
+      desc: "天生的創業家，只要時機成熟，可以開始經營自己的公司了。"
+    };
+  }
+  // 理論上不會到這裡
+  return { label: "—", desc: "—" };
+}
+
+/** 狀態 */
+let idx = 0; // 目前題號 index (0-based)
+const answers = new Array(QUESTIONS.length).fill(null);
+
+/** DOM 參考 */
+const progressText = document.getElementById("progressText");
+const answeredHint = document.getElementById("answeredHint");
+const barEl = document.getElementById("bar");
+const qText = document.getElementById("questionText");
+const options = document.getElementById("options").querySelector(".scale");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const submitBtn = document.getElementById("submitBtn");
+
+const quizSection = document.getElementById("quiz");
+const resultSection = document.getElementById("result");
+const bucketLabel = document.getElementById("bucketLabel");
+const totalScoreEl = document.getElementById("totalScore");
+const bucketDesc = document.getElementById("bucketDesc");
+const summaryTableBody = document.getElementById("summaryTable").querySelector("tbody");
+const editBtn = document.getElementById("editBtn");
+const restartBtn = document.getElementById("restartBtn");
+
+/** 產生 0~5 選項 */
+function renderScale() {
+  options.innerHTML = "";
+  for (let v = 0; v <= 5; v++) {
+    const id = `q${idx}_v${v}`;
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "score";
+    input.id = id;
+    input.value = String(v);
+    input.setAttribute("aria-label", `${v} 分`);
+    input.addEventListener("change", onSelect); // 選到就自動前往下一題
+    const label = document.createElement("label");
+    label.className = "opt";
+    label.setAttribute("for", id);
+    label.textContent = v;
+    options.appendChild(input);
+    options.appendChild(label);
+  }
+}
+
+/** 顯示目前題目 */
+function renderQuestion() {
+  const n = QUESTIONS.length;
+  qText.textContent = QUESTIONS[idx];
+  progressText.textContent = `第 ${idx + 1} / ${n} 題`;
+  const answered = answers.filter(a => a !== null).length;
+  answeredHint.textContent = `已作答 ${answered} / ${n}`;
+  const pct = Math.round((idx) / (n - 1) * 100);
+  barEl.style.width = `${pct}%`;
+
+  // 切換按鈕可用狀態
+  prevBtn.disabled = (idx === 0);
+  nextBtn.style.display = (idx < n - 1) ? "inline-block" : "none";
+  submitBtn.style.display = (idx === n - 1) ? "inline-block" : "none";
+
+  // 重繪選項並套用既有作答
+  renderScale();
+  const chosen = answers[idx];
+  if (chosen !== null) {
+    const preId = `q${idx}_v${chosen}`;
+    const pre = document.getElementById(preId);
+    if (pre) pre.checked = true;
+  }
+
+  // 讓鍵盤使用者可直接左右換分數
+  const firstLabel = options.querySelector("label.opt");
+  if (firstLabel) firstLabel.focus({ preventScroll: true });
+}
+
+/** 選擇答案後自動前往下一題 */
+function onSelect(e) {
+  const val = Number(e.target.value);
+  answers[idx] = val;
+  // 若不是最後一題，自動下一題；最後一題則停留等待送出
+  if (idx < QUESTIONS.length - 1) {
+    idx++;
+    renderQuestion();
+  } else {
+    // 把焦點移至送出，便於直接送出
+    submitBtn.focus();
+  }
+}
+
+/** 下一題（若未作答則提示） */
+function next() {
+  if (answers[idx] === null) {
+    // 輕量提示（不打斷）
+    qText.animate([{ backgroundColor: "#fff3cd" }, { backgroundColor: "transparent" }], { duration: 450 });
+    return;
+  }
+  if (idx < QUESTIONS.length - 1) {
+    idx++;
+    renderQuestion();
+  }
+}
+
+/** 上一題 */
+function prev() {
+  if (idx > 0) {
+    idx--;
+    renderQuestion();
+  }
+}
+
+/** 計算並顯示結果 */
+function submit() {
+  // 未填完也允許送出，但會以未作答視為 0 分
+  const total = answers.reduce((sum, v) => sum + (v ?? 0), 0);
+  const { label, desc } = getBucket(total);
+  totalScoreEl.textContent = `${total} 分`;
+  bucketLabel.textContent = label;
+  bucketDesc.textContent = desc;
+
+  // 摘要表
+  summaryTableBody.innerHTML = "";
+  QUESTIONS.forEach((q, i) => {
+    const tr = document.createElement("tr");
+    const tdIdx = document.createElement("td"); tdIdx.textContent = String(i + 1);
+    const tdQ = document.createElement("td"); tdQ.textContent = q;
+    const tdS = document.createElement("td"); tdS.textContent = answers[i] ?? 0;
+    tr.append(tdIdx, tdQ, tdS);
+    summaryTableBody.appendChild(tr);
+  });
+
+  quizSection.style.display = "none";
+  resultSection.classList.add("show");
+  resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/** 返回修改（回到第一題或回到未完成處） */
+function edit() {
+  resultSection.classList.remove("show");
+  quizSection.style.display = "block";
+  // 回到第一題，或第一個未作答的題目
+  const firstBlank = answers.findIndex(v => v === null);
+  idx = firstBlank === -1 ? 0 : firstBlank;
+  renderQuestion();
+}
+
+/** 重新開始 */
+function restart() {
+  for (let i = 0; i < answers.length; i++) answers[i] = null;
+  idx = 0;
+  resultSection.classList.remove("show");
+  quizSection.style.display = "block";
+  renderQuestion();
+}
+
+/** 綁定事件 */
+prevBtn.addEventListener("click", prev);
+nextBtn.addEventListener("click", next);
+submitBtn.addEventListener("click", submit);
+editBtn.addEventListener("click", edit);
+restartBtn.addEventListener("click", restart);
+
+/** 初始渲染 */
+renderQuestion();
+</script>
+</body>
+</html>
